@@ -1,0 +1,33 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const gift_controller_1 = require("../controller/gift.controller");
+const upload_1 = require("../middleware/upload");
+const auth_1 = require("../middleware/auth");
+const requireRole_1 = require("../middleware/requireRole");
+const validations_1 = require("../middleware/validations");
+const router = (0, express_1.Router)();
+const conditionalUpload = (req, _res, next) => {
+    const contentType = req.headers["content-type"];
+    const isMultipart = typeof req.is === "function" && req.is("multipart/form-data") ||
+        (typeof contentType === "string" && contentType.includes("multipart/form-data"));
+    if (isMultipart) {
+        upload_1.upload.array("image", 5)(req, _res, (err) => {
+            if (err)
+                return next(err);
+            next();
+        });
+    }
+    else {
+        next();
+    }
+};
+router.post("/create", auth_1.authenticate, requireRole_1.requireAdmin, conditionalUpload, upload_1.verifyUploadedFiles, gift_controller_1.createGift);
+router.put("/:id", auth_1.authenticate, requireRole_1.requireAdmin, gift_controller_1.updateGift);
+router.delete("/:id", auth_1.authenticate, requireRole_1.requireAdmin, gift_controller_1.deleteGift);
+router.delete("/:id/image", auth_1.authenticate, requireRole_1.requireAdmin, gift_controller_1.deleteImage);
+router.put("/:id/images", auth_1.authenticate, requireRole_1.requireAdmin, upload_1.upload.array("image", 5), upload_1.verifyUploadedFiles, gift_controller_1.updateImages);
+router.get("/all", gift_controller_1.getAllGifts);
+router.get("/new-arrivals", gift_controller_1.newArrivals);
+router.get("/:id", (0, validations_1.validateObjectIdParam)("id"), gift_controller_1.getGifts);
+exports.default = router;

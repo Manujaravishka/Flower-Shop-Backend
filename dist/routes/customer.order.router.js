@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../middleware/auth");
+const requireRole_1 = require("../middleware/requireRole");
+const customer_order_controller_1 = require("../controller/customer.order.controller");
+const validations_1 = require("../middleware/validations");
+const router = (0, express_1.Router)();
+router.get("/orders", auth_1.authenticate, (0, requireRole_1.requireRole)("customer"), customer_order_controller_1.getMyOrders);
+router.get("/orders/:orderId", auth_1.authenticate, (0, requireRole_1.requireRole)("customer"), (0, validations_1.validateObjectIdParam)("orderId"), customer_order_controller_1.getMyOrderById);
+router.post("/orders/:orderId/cancel", auth_1.authenticate, (0, requireRole_1.requireRole)("customer"), (0, validations_1.validateObjectIdParam)("orderId"), customer_order_controller_1.cancelMyOrder);
+exports.default = router;

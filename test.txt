@@ -1,0 +1,2 @@
+db user = praveenrusiru752_db_user
+db password = rw6h5SLYNnGmPJFv
