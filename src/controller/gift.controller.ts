@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Gift, { IMediaUrl, Category, Size } from "../model/gift.modal";
 import cloudinary, { isCloudinaryConfigured } from "../config/cloudinary";
 import { saveFileLocally, deleteLocalFile } from "../util/localUpload";
+import { normalizeCategories, normalizeCategoryQueryParam } from "../util/category";
 import type { UploadApiResponse } from "cloudinary";
 
 const uploadToCloudinary = (file: Express.Multer.File): Promise<UploadApiResponse> => {
@@ -56,15 +57,6 @@ const parseStock = (value: unknown): number => {
     return Math.floor(value);
 };
 
-const parseCategories = (value: unknown): Category[] | null => {
-    const arr = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
-    const filtered = arr
-        .filter((v): v is string => typeof v === "string")
-        .map((v) => v.toUpperCase())
-        .filter((v): v is Category => Object.values(Category).includes(v as Category));
-    if (filtered.length === 0) return null;
-    return filtered;
-};
 
 const parseSize = (value: unknown): Size | undefined => {
     if (typeof value !== "string") return undefined;
@@ -79,7 +71,7 @@ export const createGift = async (req: Request, res: Response) => {
     const price = parsePrice(req.body?.price);
     const colour = parseStringField(req.body?.colour, "colour");
     const size = parseSize(req.body?.size);
-    const category = parseCategories(req.body?.category);
+    const category = normalizeCategories(req.body?.category);
     const stock = parseStock(req.body?.stock);
     const slug = parseStringField(req.body?.slug, "slug");
     const files = Array.isArray(req.files)
@@ -180,8 +172,8 @@ export const updateGift = async (req: Request, res: Response) => {
             if (s) gift.size = s;
         }
         if (category !== undefined) {
-            const cats = parseCategories(category);
-            if (cats) gift.category = cats;
+            const cats = normalizeCategories(category);
+            if (cats.length > 0) gift.category = cats;
         }
         if (stock !== undefined) gift.stock = parseStock(stock);
         if (isActive !== undefined) gift.isActive = !!isActive;
@@ -364,8 +356,10 @@ export const getAllGifts = async (req: Request, res: Response) => {
             filter.isActive = true;
         }
         if (category) {
-            const cats = category.split(",").map((c) => c.toUpperCase());
-            filter.category = { $in: cats };
+            const cats = normalizeCategoryQueryParam(category);
+            if (cats.length > 0) {
+                filter.category = { $in: cats };
+            }
         }
         if (size) {
             filter.size = size.toUpperCase();
