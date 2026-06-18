@@ -8,7 +8,7 @@ export const normalizeCategoryValue = (value: unknown): Category | null => {
   const normalized = normalizeCategoryString(value);
   if (!normalized) return null;
 
-  if (normalized === "BOUQUET") return Category.Boquets;
+  if (normalized === "BOUQUET" || normalized === "BOUQUETS") return Category.Boquets;
   if (normalized === "GIFT BOX") return Category.GiftBox;
   if (normalized === "KEY TAG") return Category.Keytag;
 
@@ -48,7 +48,7 @@ export const normalizeCategoryQueryParam = (value?: string): (Category | RegExp)
 
   return normalizedCategories.map((category) => {
     if (category === Category.Boquets) {
-      return /^BOUQUETS?$/i;
+      return /^(BOUQUETS|BOQUETS)$/i;
     }
     if (category === Category.GiftBox) {
       return /^GIFT\s*BOX$/i;
