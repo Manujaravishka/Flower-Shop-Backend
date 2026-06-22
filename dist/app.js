@@ -90,6 +90,12 @@ app.use(express_1.default.json({ limit: "10mb" }));
 app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
 app.use(requestLogger_1.requestLogger);
 app.use("/uploads", express_1.default.static(path_1.default.resolve(process.cwd(), "uploads")));
+app.use(async (_req, _res, next) => {
+    if (!cachedDb) {
+        await (0, exports.connectDB)();
+    }
+    next();
+});
 app.get("/", (_req, res) => {
     res.status(200).json({
         success: true,

@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -98,6 +98,13 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(requestLogger);
 
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+
+app.use(async (_req: Request, _res: Response, next: NextFunction) => {
+  if (!cachedDb) {
+    await connectDB();
+  }
+  next();
+});
 
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
