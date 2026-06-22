@@ -96,5 +96,24 @@ const giftSchema = new mongoose_1.Schema({
     },
 }, { timestamps: true });
 giftSchema.index({ name: "text", description: "text" });
+giftSchema.pre("init", function (raw) {
+    const doc = raw;
+    if (doc.imageUrl && !doc.mediaUrl) {
+        doc.mediaUrl = doc.imageUrl;
+    }
+    delete doc.imageUrl;
+    if (doc.mediaUrl && typeof doc.mediaUrl === "string") {
+        doc.mediaUrl = [{ url: doc.mediaUrl, public_id: "" }];
+    }
+    if (doc.mediaUrl &&
+        Array.isArray(doc.mediaUrl) &&
+        doc.mediaUrl.length > 0 &&
+        typeof doc.mediaUrl[0] === "string") {
+        doc.mediaUrl = doc.mediaUrl.map((u) => ({
+            url: u,
+            public_id: "",
+        }));
+    }
+});
 const Gift = mongoose_1.default.model("Gift", giftSchema);
 exports.default = Gift;

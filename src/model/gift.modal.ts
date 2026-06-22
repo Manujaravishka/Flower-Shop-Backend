@@ -88,6 +88,28 @@ const giftSchema: Schema = new Schema<IGift>(
 
 giftSchema.index({ name: "text", description: "text" });
 
+giftSchema.pre("init", function (raw: Record<string, unknown>) {
+    const doc = raw as Record<string, unknown>;
+    if (doc.imageUrl && !doc.mediaUrl) {
+        doc.mediaUrl = doc.imageUrl;
+    }
+    delete doc.imageUrl;
+    if (doc.mediaUrl && typeof doc.mediaUrl === "string") {
+        doc.mediaUrl = [{ url: doc.mediaUrl, public_id: "" }];
+    }
+    if (
+        doc.mediaUrl &&
+        Array.isArray(doc.mediaUrl) &&
+        doc.mediaUrl.length > 0 &&
+        typeof doc.mediaUrl[0] === "string"
+    ) {
+        doc.mediaUrl = (doc.mediaUrl as string[]).map((u) => ({
+            url: u,
+            public_id: "",
+        }));
+    }
+});
+
 const Gift = mongoose.model<IGift>("Gift", giftSchema);
 
 export default Gift;

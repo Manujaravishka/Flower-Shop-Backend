@@ -57,6 +57,6 @@ const LibrarySchema = new mongoose_1.Schema({
         ref: "User",
         required: false,
     },
-}, { timestamps: true });
+}, { timestamps: true, collection: "library" });
 const LibraryModel = mongoose_1.default.model("Library", LibrarySchema);
 exports.default = LibraryModel;
