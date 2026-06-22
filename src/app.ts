@@ -6,6 +6,8 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import path from "path";
 
+const APP_VERSION = "1.0.0";
+
 import userRouter from "./routes/user.router";
 import giftRouter from "./routes/gift.router";
 import customerRouter from "./routes/customer.router";
@@ -97,10 +99,20 @@ app.use(requestLogger);
 
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
+app.get("/", (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: "Flower Shop API is running successfully",
+    version: APP_VERSION,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: "Server is running",
+    version: APP_VERSION,
     environment: process.env.NODE_ENV || "development",
     dbConnected: !!cachedDb,
     timestamp: new Date().toISOString(),

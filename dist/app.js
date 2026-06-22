@@ -11,6 +11,7 @@ const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const helmet_1 = __importDefault(require("helmet"));
 const path_1 = __importDefault(require("path"));
+const APP_VERSION = "1.0.0";
 const user_router_1 = __importDefault(require("./routes/user.router"));
 const gift_router_1 = __importDefault(require("./routes/gift.router"));
 const customer_router_1 = __importDefault(require("./routes/customer.router"));
@@ -89,10 +90,19 @@ app.use(express_1.default.json({ limit: "10mb" }));
 app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
 app.use(requestLogger_1.requestLogger);
 app.use("/uploads", express_1.default.static(path_1.default.resolve(process.cwd(), "uploads")));
+app.get("/", (_req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Flower Shop API is running successfully",
+        version: APP_VERSION,
+        timestamp: new Date().toISOString(),
+    });
+});
 app.get("/health", (_req, res) => {
     res.status(200).json({
         success: true,
         message: "Server is running",
+        version: APP_VERSION,
         environment: process.env.NODE_ENV || "development",
         dbConnected: !!cachedDb,
         timestamp: new Date().toISOString(),
