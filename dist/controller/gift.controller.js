@@ -37,6 +37,7 @@ exports.newArrivals = exports.deleteGift = exports.getAllGifts = exports.getGift
 const gift_modal_1 = __importStar(require("../model/gift.modal"));
 const cloudinary_1 = __importStar(require("../config/cloudinary"));
 const localUpload_1 = require("../util/localUpload");
+const category_1 = require("../util/category");
 const uploadToCloudinary = (file) => {
     return new Promise((resolve, reject) => {
         const stream = cloudinary_1.default.uploader.upload_stream({ folder: "gift-images" }, (error, result) => {
@@ -85,16 +86,6 @@ const parseStock = (value) => {
         return 0;
     return Math.floor(value);
 };
-const parseCategories = (value) => {
-    const arr = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
-    const filtered = arr
-        .filter((v) => typeof v === "string")
-        .map((v) => v.toUpperCase())
-        .filter((v) => Object.values(gift_modal_1.Category).includes(v));
-    if (filtered.length === 0)
-        return null;
-    return filtered;
-};
 const parseSize = (value) => {
     if (typeof value !== "string")
         return undefined;
@@ -109,10 +100,14 @@ const createGift = async (req, res) => {
     const price = parsePrice(req.body?.price);
     const colour = parseStringField(req.body?.colour, "colour");
     const size = parseSize(req.body?.size);
-    const category = parseCategories(req.body?.category);
+    const category = (0, category_1.normalizeCategories)(req.body?.category);
     const stock = parseStock(req.body?.stock);
     const slug = parseStringField(req.body?.slug, "slug");
-    const files = Array.isArray(req.files) ? req.files : [];
+    const files = Array.isArray(req.files)
+        ? req.files
+        : req.files && typeof req.files === "object"
+            ? Object.values(req.files).flat()
+            : [];
     if (!name || !price || !colour || !category) {
         return res.status(400).json({
             success: false,
@@ -193,8 +188,8 @@ const updateGift = async (req, res) => {
                 gift.size = s;
         }
         if (category !== undefined) {
-            const cats = parseCategories(category);
-            if (cats)
+            const cats = (0, category_1.normalizeCategories)(category);
+            if (cats.length > 0)
                 gift.category = cats;
         }
         if (stock !== undefined)
@@ -234,7 +229,11 @@ const updateImages = async (req, res) => {
                 message: "Gift not found",
             });
         }
-        const files = req.files;
+        const files = Array.isArray(req.files)
+            ? req.files
+            : req.files && typeof req.files === "object"
+                ? Object.values(req.files).flat()
+                : [];
         if (!files || files.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -355,8 +354,10 @@ const getAllGifts = async (req, res) => {
             filter.isActive = true;
         }
         if (category) {
-            const cats = category.split(",").map((c) => c.toUpperCase());
-            filter.category = { $in: cats };
+            const cats = (0, category_1.normalizeCategoryQueryParam)(category);
+            if (cats.length > 0) {
+                filter.category = { $in: cats };
+            }
         }
         if (size) {
             filter.size = size.toUpperCase();

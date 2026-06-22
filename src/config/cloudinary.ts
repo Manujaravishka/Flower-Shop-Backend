@@ -9,7 +9,7 @@ const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
 const INVALID_VALUE = /^(replace_with_|your_|changeme_|demo)/i;
 
-const isValid =
+export const isCloudinaryConfigured =
     !!cloudName &&
     !!apiKey &&
     !!apiSecret &&
@@ -17,17 +17,13 @@ const isValid =
     !INVALID_VALUE.test(apiKey) &&
     !INVALID_VALUE.test(apiSecret);
 
-if (!isValid) {
-    throw new Error(
-        "❌ Cloudinary is not properly configured. Check your .env values."
-    );
+if (isCloudinaryConfigured) {
+    cloudinary.config({
+        cloud_name: cloudName!,
+        api_key: apiKey!,
+        api_secret: apiSecret!,
+        secure: true,
+    });
 }
-
-cloudinary.config({
-    cloud_name: cloudName!,
-    api_key: apiKey!,
-    api_secret: apiSecret!,
-    secure: true, // ✅ important for production
-});
 
 export default cloudinary;

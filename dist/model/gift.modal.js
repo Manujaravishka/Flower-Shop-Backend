@@ -81,6 +81,8 @@ const giftSchema = new mongoose_1.Schema({
             },
         ],
         required: true,
+        default: [],
+        alias: "imageUrl",
     },
     stock: { type: Number, default: 0, min: 0 },
     isActive: { type: Boolean, default: true, index: true },

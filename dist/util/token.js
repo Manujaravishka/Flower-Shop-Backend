@@ -16,6 +16,7 @@ const isPlaceholder = (value) => {
         return true;
     return PLACEHOLDER_PATTERNS.some((re) => re.test(trimmed));
 };
+console.log("JWT_ACCESS_SECRET:", process.env.JWT_ACCESS_SECRET);
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 if (!JWT_ACCESS_SECRET || isPlaceholder(JWT_ACCESS_SECRET)) {

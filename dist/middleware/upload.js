@@ -49,7 +49,11 @@ exports.upload = (0, multer_1.default)({
     fileFilter,
 });
 const verifyUploadedFiles = (req, _res, next) => {
-    const files = req.files || [];
+    const files = Array.isArray(req.files)
+        ? req.files
+        : req.files && typeof req.files === "object"
+            ? Object.values(req.files).flat()
+            : [];
     for (const file of files) {
         if (!checkMagicBytes(file.buffer, file.mimetype)) {
             return next(new Error("File content does not match its declared type"));
