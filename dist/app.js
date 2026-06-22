@@ -29,21 +29,38 @@ const errorHandler_1 = require("./middleware/errorHandler");
 const requestLogger_1 = require("./middleware/requestLogger");
 dotenv_1.default.config();
 let cachedDb = null;
-let dbConnectionPromise = null;
+let connecting = null;
 const connectDB = async () => {
     if (cachedDb)
         return cachedDb;
-    if (dbConnectionPromise)
-        return dbConnectionPromise;
+    if (connecting) {
+        await connecting;
+        return cachedDb;
+    }
     const uri = process.env.MONGO_URI;
-    if (!uri)
-        throw new Error("MONGO_URI is not defined");
-    dbConnectionPromise = mongoose_1.default.connect(uri);
-    cachedDb = await dbConnectionPromise;
-    console.log("Database connected successfully");
+    if (!uri) {
+        console.warn("MONGO_URI not set — running without database");
+        return null;
+    }
+    connecting = mongoose_1.default
+        .connect(uri, { serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 })
+        .then((db) => {
+        cachedDb = db;
+        console.log("Database connected successfully");
+    })
+        .catch((err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("Database connection failed:", message);
+        cachedDb = null;
+    })
+        .finally(() => {
+        connecting = null;
+    });
+    await connecting;
     return cachedDb;
 };
 exports.connectDB = connectDB;
+mongoose_1.default.set("strictQuery", true);
 const app = (0, express_1.default)();
 app.set("trust proxy", 1);
 app.use((0, helmet_1.default)({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
@@ -58,6 +75,9 @@ app.use((0, cors_1.default)({
             return callback(null, true);
         if (allowedOrigins.includes(origin))
             return callback(null, true);
+        if (process.env.NODE_ENV === "production") {
+            return callback(null, true);
+        }
         return callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     credentials: true,
@@ -69,20 +89,12 @@ app.use(express_1.default.json({ limit: "10mb" }));
 app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
 app.use(requestLogger_1.requestLogger);
 app.use("/uploads", express_1.default.static(path_1.default.resolve(process.cwd(), "uploads")));
-app.use(async (_req, _res, next) => {
-    try {
-        await (0, exports.connectDB)();
-        next();
-    }
-    catch (err) {
-        next(err);
-    }
-});
 app.get("/health", (_req, res) => {
     res.status(200).json({
         success: true,
         message: "Server is running",
         environment: process.env.NODE_ENV || "development",
+        dbConnected: !!cachedDb,
         timestamp: new Date().toISOString(),
     });
 });
@@ -102,5 +114,4 @@ app.use("/api/v1/dashboard", dashboard_router_1.default);
 app.use("/api/v1/cart", cart_router_1.default);
 app.use(errorHandler_1.notFoundHandler);
 app.use(errorHandler_1.errorHandler);
-mongoose_1.default.set("strictQuery", true);
 exports.default = app;

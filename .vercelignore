@@ -1,0 +1,10 @@
+.env
+.env.example
+.gitignore
+README.md
+test.txt
+dump.rdb
+docs
+uploads
+.idea
+*.md

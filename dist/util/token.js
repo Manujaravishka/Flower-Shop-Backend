@@ -16,17 +16,22 @@ const isPlaceholder = (value) => {
         return true;
     return PLACEHOLDER_PATTERNS.some((re) => re.test(trimmed));
 };
-console.log("JWT_ACCESS_SECRET:", process.env.JWT_ACCESS_SECRET);
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-if (!JWT_ACCESS_SECRET || isPlaceholder(JWT_ACCESS_SECRET)) {
-    throw new Error("JWT_ACCESS_SECRET must be defined as a strong (>= 32 chars) non-placeholder secret in environment variables");
-}
-if (!JWT_REFRESH_SECRET || isPlaceholder(JWT_REFRESH_SECRET)) {
-    throw new Error("JWT_REFRESH_SECRET must be defined as a strong (>= 32 chars) non-placeholder secret in environment variables");
-}
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "";
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "";
 const ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || "15m";
 const REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+const getAccessSecret = () => {
+    if (!JWT_ACCESS_SECRET || isPlaceholder(JWT_ACCESS_SECRET)) {
+        throw new Error("JWT_ACCESS_SECRET must be defined as a strong non-placeholder secret");
+    }
+    return JWT_ACCESS_SECRET;
+};
+const getRefreshSecret = () => {
+    if (!JWT_REFRESH_SECRET || isPlaceholder(JWT_REFRESH_SECRET)) {
+        throw new Error("JWT_REFRESH_SECRET must be defined as a strong non-placeholder secret");
+    }
+    return JWT_REFRESH_SECRET;
+};
 const buildOptions = (expiresIn) => ({
     expiresIn: expiresIn,
 });
@@ -34,13 +39,13 @@ const sign = (id, email, role, type, secret, expiresIn) => {
     const payload = { sub: id, email, role, type };
     return jsonwebtoken_1.default.sign(payload, secret, buildOptions(expiresIn));
 };
-const signUserAccessToken = (user) => sign(user._id.toString(), user.email, user.role || "admin", "user", JWT_ACCESS_SECRET, ACCESS_EXPIRES_IN);
+const signUserAccessToken = (user) => sign(user._id.toString(), user.email, user.role || "admin", "user", getAccessSecret(), ACCESS_EXPIRES_IN);
 exports.signUserAccessToken = signUserAccessToken;
-const signUserRefreshToken = (user) => sign(user._id.toString(), user.email, user.role || "admin", "user", JWT_REFRESH_SECRET, REFRESH_EXPIRES_IN);
+const signUserRefreshToken = (user) => sign(user._id.toString(), user.email, user.role || "admin", "user", getRefreshSecret(), REFRESH_EXPIRES_IN);
 exports.signUserRefreshToken = signUserRefreshToken;
-const signCustomerAccessToken = (customer) => sign(customer._id.toString(), customer.email, "customer", "customer", JWT_ACCESS_SECRET, ACCESS_EXPIRES_IN);
+const signCustomerAccessToken = (customer) => sign(customer._id.toString(), customer.email, "customer", "customer", getAccessSecret(), ACCESS_EXPIRES_IN);
 exports.signCustomerAccessToken = signCustomerAccessToken;
-const signCustomerRefreshToken = (customer) => sign(customer._id.toString(), customer.email, "customer", "customer", JWT_REFRESH_SECRET, REFRESH_EXPIRES_IN);
+const signCustomerRefreshToken = (customer) => sign(customer._id.toString(), customer.email, "customer", "customer", getRefreshSecret(), REFRESH_EXPIRES_IN);
 exports.signCustomerRefreshToken = signCustomerRefreshToken;
 const verifyToken = (token, secret) => {
     const decoded = jsonwebtoken_1.default.verify(token, secret);
@@ -49,13 +54,13 @@ const verifyToken = (token, secret) => {
     }
     return decoded;
 };
-const verifyUserAccessToken = (token) => verifyToken(token, JWT_ACCESS_SECRET);
+const verifyUserAccessToken = (token) => verifyToken(token, getAccessSecret());
 exports.verifyUserAccessToken = verifyUserAccessToken;
-const verifyUserRefreshToken = (token) => verifyToken(token, JWT_REFRESH_SECRET);
+const verifyUserRefreshToken = (token) => verifyToken(token, getRefreshSecret());
 exports.verifyUserRefreshToken = verifyUserRefreshToken;
-const verifyCustomerAccessToken = (token) => verifyToken(token, JWT_ACCESS_SECRET);
+const verifyCustomerAccessToken = (token) => verifyToken(token, getAccessSecret());
 exports.verifyCustomerAccessToken = verifyCustomerAccessToken;
-const verifyCustomerRefreshToken = (token) => verifyToken(token, JWT_REFRESH_SECRET);
+const verifyCustomerRefreshToken = (token) => verifyToken(token, getRefreshSecret());
 exports.verifyCustomerRefreshToken = verifyCustomerRefreshToken;
 const buildAuthResponse = (user, accessToken, refreshToken, message = "Authentication successful") => ({
     success: true,

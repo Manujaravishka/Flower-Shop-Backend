@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -26,20 +26,41 @@ import { requestLogger } from "./middleware/requestLogger";
 dotenv.config();
 
 let cachedDb: mongoose.Mongoose | null = null;
-let dbConnectionPromise: Promise<mongoose.Mongoose> | null = null;
+let connecting: Promise<void> | null = null;
 
-export const connectDB = async (): Promise<mongoose.Mongoose> => {
+export const connectDB = async (): Promise<mongoose.Mongoose | null> => {
   if (cachedDb) return cachedDb;
-  if (dbConnectionPromise) return dbConnectionPromise;
+  if (connecting) {
+    await connecting;
+    return cachedDb;
+  }
 
   const uri = process.env.MONGO_URI;
-  if (!uri) throw new Error("MONGO_URI is not defined");
+  if (!uri) {
+    console.warn("MONGO_URI not set — running without database");
+    return null;
+  }
 
-  dbConnectionPromise = mongoose.connect(uri);
-  cachedDb = await dbConnectionPromise;
-  console.log("Database connected successfully");
+  connecting = mongoose
+    .connect(uri, { serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 })
+    .then((db) => {
+      cachedDb = db;
+      console.log("Database connected successfully");
+    })
+    .catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("Database connection failed:", message);
+      cachedDb = null;
+    })
+    .finally(() => {
+      connecting = null;
+    });
+
+  await connecting;
   return cachedDb;
 };
+
+mongoose.set("strictQuery", true);
 
 const app = express();
 
@@ -58,6 +79,9 @@ app.use(
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (process.env.NODE_ENV === "production") {
+        return callback(null, true);
+      }
       return callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     credentials: true,
@@ -73,20 +97,12 @@ app.use(requestLogger);
 
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
-app.use(async (_req: Request, _res: Response, next: NextFunction) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
-
 app.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: "Server is running",
     environment: process.env.NODE_ENV || "development",
+    dbConnected: !!cachedDb,
     timestamp: new Date().toISOString(),
   });
 });
@@ -108,7 +124,5 @@ app.use("/api/v1/cart", cartRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
-
-mongoose.set("strictQuery", true);
 
 export default app;

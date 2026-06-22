@@ -13,24 +13,24 @@ const isPlaceholder = (value: string | undefined): boolean => {
     if (trimmed.length < 32) return true;
     return PLACEHOLDER_PATTERNS.some((re) => re.test(trimmed));
 };
-console.log("JWT_ACCESS_SECRET:", process.env.JWT_ACCESS_SECRET);
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-
-if (!JWT_ACCESS_SECRET || isPlaceholder(JWT_ACCESS_SECRET)) {
-    throw new Error(
-        "JWT_ACCESS_SECRET must be defined as a strong (>= 32 chars) non-placeholder secret in environment variables"
-    );
-}
-
-if (!JWT_REFRESH_SECRET || isPlaceholder(JWT_REFRESH_SECRET)) {
-    throw new Error(
-        "JWT_REFRESH_SECRET must be defined as a strong (>= 32 chars) non-placeholder secret in environment variables"
-    );
-}
-
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "";
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "";
 const ACCESS_EXPIRES_IN: string = process.env.JWT_ACCESS_EXPIRES_IN || "15m";
 const REFRESH_EXPIRES_IN: string = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+
+const getAccessSecret = (): string => {
+    if (!JWT_ACCESS_SECRET || isPlaceholder(JWT_ACCESS_SECRET)) {
+        throw new Error("JWT_ACCESS_SECRET must be defined as a strong non-placeholder secret");
+    }
+    return JWT_ACCESS_SECRET;
+};
+
+const getRefreshSecret = (): string => {
+    if (!JWT_REFRESH_SECRET || isPlaceholder(JWT_REFRESH_SECRET)) {
+        throw new Error("JWT_REFRESH_SECRET must be defined as a strong non-placeholder secret");
+    }
+    return JWT_REFRESH_SECRET;
+};
 
 export type PrincipalType = "user" | "customer";
 export type Role = "admin" | "superadmin" | "customer";
@@ -66,7 +66,7 @@ export const signUserAccessToken = (user: IUser): string =>
         user.email,
         (user.role as Role) || "admin",
         "user",
-        JWT_ACCESS_SECRET as string,
+        getAccessSecret(),
         ACCESS_EXPIRES_IN
     );
 
@@ -76,7 +76,7 @@ export const signUserRefreshToken = (user: IUser): string =>
         user.email,
         (user.role as Role) || "admin",
         "user",
-        JWT_REFRESH_SECRET as string,
+        getRefreshSecret(),
         REFRESH_EXPIRES_IN
     );
 
@@ -86,7 +86,7 @@ export const signCustomerAccessToken = (customer: ICustomer): string =>
         customer.email,
         "customer",
         "customer",
-        JWT_ACCESS_SECRET as string,
+        getAccessSecret(),
         ACCESS_EXPIRES_IN
     );
 
@@ -96,7 +96,7 @@ export const signCustomerRefreshToken = (customer: ICustomer): string =>
         customer.email,
         "customer",
         "customer",
-        JWT_REFRESH_SECRET as string,
+        getRefreshSecret(),
         REFRESH_EXPIRES_IN
     );
 
@@ -109,16 +109,16 @@ const verifyToken = (token: string, secret: string): ITokenPayload => {
 };
 
 export const verifyUserAccessToken = (token: string): ITokenPayload =>
-    verifyToken(token, JWT_ACCESS_SECRET as string);
+    verifyToken(token, getAccessSecret());
 
 export const verifyUserRefreshToken = (token: string): ITokenPayload =>
-    verifyToken(token, JWT_REFRESH_SECRET as string);
+    verifyToken(token, getRefreshSecret());
 
 export const verifyCustomerAccessToken = (token: string): ITokenPayload =>
-    verifyToken(token, JWT_ACCESS_SECRET as string);
+    verifyToken(token, getAccessSecret());
 
 export const verifyCustomerRefreshToken = (token: string): ITokenPayload =>
-    verifyToken(token, JWT_REFRESH_SECRET as string);
+    verifyToken(token, getRefreshSecret());
 
 export interface AuthResponseData {
     user: Record<string, unknown>;
