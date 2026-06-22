@@ -2,6 +2,9 @@
 
 A production-grade REST API for a luxury floral e-commerce platform. Built with **Node.js**, **Express 5**, **TypeScript**, and **MongoDB Atlas**, deployed serverlessly on **Vercel**.
 
+**Deployed API:** [`https://flower-shop-backend-rosy.vercel.app`](https://flower-shop-backend-rosy.vercel.app)
+**Frontend:** [`https://flower-boquet-frontend.vercel.app`](https://flower-boquet-frontend.vercel.app)
+
 ---
 
 ## Architecture
